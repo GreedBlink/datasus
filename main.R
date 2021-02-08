@@ -62,7 +62,7 @@ purrr::walk(
 # save to db 
 
 
-credentials = yaml::read_yaml('~/Documents/umane_credentials.yml')
+credentials = yaml::read_yaml('~/umane_credentials.yml')
 
 conn = fun_create_conn(
   user = credentials$user,
