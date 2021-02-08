@@ -1,14 +1,17 @@
-require(require(read.dbc))
-require(data.table)
-require(dplyr)
-require(purrr)
-require(rvest)
-require(httr)
-require(fs)
-require(usethis)
-require(yaml)
-require(DBI)
-require(RPostgres)
+invisible(x = {
+  require(read.dbc)
+  require(data.table)
+  require(dplyr)
+  require(purrr)
+  require(rvest)
+  require(httr)
+  require(fs)
+  require(usethis)
+  require(yaml)
+  require(DBI)
+  require(RPostgres)
+})
+
 
 fs::dir_ls(path = './src/',type = 'file') %>% 
   purrr::walk(~source(.,encoding = 'UTF-8'))
@@ -28,40 +31,7 @@ if(!fs::dir_exists('./data/sia_data/')){
 }
 
 
-files = fun_sia_links()
-
-purrr::walk(
-  .x = files,
-  .f = ~{
-    url_base = 'ftp://ftp.datasus.gov.br/dissemin/publicos/SIASUS/200801_/Dados/'
-    final_url = glue::glue('{url_base}{.x}')
-  
-    usethis::ui_todo(
-      paste('Getting',crayon::bold(crayon::green(final_url)),   sep = ' > ')
-    )
-    name = stringr::str_remove(.x, '.dbc') %>% stringr::str_squish()
-    date = stringr::str_extract(.x, '\\d+') %>% 
-      stringr::str_c('01') %>% 
-      lubridate::ymd()
-    
-    save_fn =  glue::glue('./data/sia_data/{name}.rds')
-    
-    dest_file = paste0(tempfile(),'.dbc')
-    download.file(final_url,dest_file)
-    fun_sia_read_dbc(dest_file,date) %>% 
-    fun_sia_prep() %>% 
-    saveRDS(save_fn, compress = 'bzip2') 
-    
-    file.remove(dest_file)
-    gc()
-  }
-)
-
-
-
-# save to db 
-
-
+# database
 credentials = yaml::read_yaml('~/umane_credentials.yml')
 
 conn = fun_create_conn(
@@ -98,23 +68,97 @@ if(new){
 
 gc()
 
-# save 
 
-files = fs::dir_ls(path = './data/sia_data/', type = 'file')
+files = fun_sia_links()
 
 purrr::walk(
-  .x = files,
-  .f=~{
-    readRDS(.x) %>% 
-      DBI::dbWriteTable(
-       conn, 
-       name = 'datasus_sia',
-       value = .,
-       append = TRUE
-      )
+  .x = files[1],
+  .f = ~{
+    url_base = 'ftp://ftp.datasus.gov.br/dissemin/publicos/SIASUS/200801_/Dados/'
+    final_url = glue::glue('{url_base}{.x}')
+  
+    usethis::ui_todo(
+      paste('Getting',crayon::bold(crayon::green(final_url)),   sep = ' > ')
+    )
+    name = stringr::str_remove(.x, '.dbc') %>% stringr::str_squish()
+    date = stringr::str_extract(.x, '\\d+') %>% 
+      stringr::str_c('01') %>% 
+      lubridate::ymd()
+    
+    save_fn =  glue::glue('./data/sia_data/{name}.rds')
+    
+    
+    try(
+      expr = {
+    
+        dest_file = paste0(tempfile(),'.dbc')
+        download.file(final_url,dest_file)
+    
+        dados = fun_sia_read_dbc(dest_file,date) %>% 
+        fun_sia_prep() #%>% 
+        #saveRDS(save_fn, compress = 'bzip2') 
+
+        file.remove(dest_file)
+        
+        #save
+        usethis::ui_todo(
+          paste('Saving',crayon::bold(crayon::green(.x)),   sep = ' > ')
+        )
+        tryCatch({
+          DBI::dbWriteTable(
+            conn, 
+            name = 'datasus_sia',
+            value = dados,
+            append = TRUE
+          )  
+        }, 
+        error = function(e){
+          conn = fun_create_conn(
+            user = credentials$user,
+            pass = credentials$pass,
+            dataset = credentials$dataset,
+            host = credentials$host,
+            port = credentials$port
+          )
+          
+          DBI::dbWriteTable(
+            conn, 
+            name = 'datasus_sia',
+            value = dados,
+            append = TRUE
+          )
+        })
+        
+        
+    })
     gc()
   }
-  )
+)
+
+
+
+# save to db 
+
+
+
+
+# save 
+
+# files = fs::dir_ls(path = './data/sia_data/', type = 'file')
+# 
+# purrr::walk(
+#   .x = files,
+#   .f=~{
+#     readRDS(.x) %>% 
+#       DBI::dbWriteTable(
+#        conn, 
+#        name = 'datasus_sia',
+#        value = .,
+#        append = TRUE
+#       )
+#     gc()
+#   }
+#   )
 
 
 
