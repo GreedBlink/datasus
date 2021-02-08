@@ -28,7 +28,7 @@ if(!fs::dir_exists('./data/sia_data/')){
 }
 
 
-links = fun_sia_links()
+files = fun_sia_links()
 
 purrr::walk(
   .x = files,
