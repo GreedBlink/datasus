@@ -79,7 +79,7 @@ gc()
 files = fun_sia_links()
 
 purrr::walk(
-  .x = files[1:5],
+  .x = files,
   .f = ~{
     url_base = 'ftp://ftp.datasus.gov.br/dissemin/publicos/SIASUS/200801_/Dados/'
     final_url = glue::glue('{url_base}{.x}')
