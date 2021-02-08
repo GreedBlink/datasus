@@ -32,7 +32,14 @@ if(!fs::dir_exists('./data/sia_data/')){
 
 
 # database
-credentials = yaml::read_yaml('~/umane_credentials.yml')
+credentials = tryCatch({
+    yaml::read_yaml('~/umane_credentials.yml')
+  },
+  warning = function(e){
+    yaml::read_yaml('~/Documents/umane_credentials.yml')
+  }
+)  
+
 
 conn = fun_create_conn(
   user = credentials$user,
@@ -46,8 +53,8 @@ new = TRUE
 
 if(new){
   query_remove_table <- 'DROP TABLE IF EXISTS  datasus_sia '
-  DBI::dbSendQuery(conn, query_remove_table)
-  
+  res = DBI::dbSendQuery(conn, query_remove_table)
+  #DBI::dbFetch(res, n=-1)
   
   query_create_table <- '
   CREATE TABLE datasus_sia(
@@ -61,8 +68,8 @@ if(new){
       valor INT
   );
 '
-  DBI::dbSendQuery(conn, query_create_table)
-  
+  res = DBI::dbSendQuery(conn, query_create_table)
+  #DBI::dbFetch(res, n=-1)
 }
 
 
@@ -72,7 +79,7 @@ gc()
 files = fun_sia_links()
 
 purrr::walk(
-  .x = files[1],
+  .x = files[1:5],
   .f = ~{
     url_base = 'ftp://ftp.datasus.gov.br/dissemin/publicos/SIASUS/200801_/Dados/'
     final_url = glue::glue('{url_base}{.x}')
@@ -92,7 +99,7 @@ purrr::walk(
       expr = {
     
         dest_file = paste0(tempfile(),'.dbc')
-        download.file(final_url,dest_file)
+        download.file(final_url,dest_file,quiet = TRUE)
     
         dados = fun_sia_read_dbc(dest_file,date) %>% 
         fun_sia_prep() #%>% 
@@ -121,12 +128,14 @@ purrr::walk(
             port = credentials$port
           )
           
-          DBI::dbWriteTable(
+          res = DBI::dbWriteTable(
             conn, 
             name = 'datasus_sia',
             value = dados,
             append = TRUE
           )
+          DBI::dbFetch(res, n=-1)
+          
         })
         
         
