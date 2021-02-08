@@ -6,7 +6,9 @@ require(rvest)
 require(httr)
 require(fs)
 require(usethis)
-
+require(yaml)
+require(DBI)
+require(RPostgres)
 
 fs::dir_ls(path = './src/',type = 'file') %>% 
   purrr::walk(~source(.,encoding = 'UTF-8'))
@@ -57,7 +59,62 @@ purrr::walk(
 
 
 
+# save to db 
 
+
+credentials = yaml::read_yaml('~/Documents/umane_credentials.yml')
+
+conn = fun_create_conn(
+  user = credentials$user,
+  pass = credentials$pass,
+  dataset = credentials$dataset,
+  host = credentials$host,
+  port = credentials$port
+)
+
+new = TRUE
+
+if(new){
+  query_remove_table <- 'DROP TABLE IF EXISTS  datasus_sia '
+  DBI::dbSendQuery(conn, query_remove_table)
+  
+  
+  query_create_table <- '
+  CREATE TABLE datasus_sia(
+      id  SERIAL,
+      cod_uf VARCHAR(2),
+      cod_municipio VARCHAR(6),
+      proc_id VARCHAR(50),
+      sexo VARCHAR(1),
+      faixa_etaria VARCHAR(50),
+      racacor VARCHAR(50),
+      valor INT
+  );
+'
+  DBI::dbSendQuery(conn, query_create_table)
+  
+}
+
+
+gc()
+
+# save 
+
+files = fs::dir_ls(path = './data/sia_data/', type = 'file')
+
+purrr::walk(
+  .x = files,
+  .f=~{
+    readRDS(.x) %>% 
+      DBI::dbWriteTable(
+       conn, 
+       name = 'datasus_sia',
+       value = .,
+       append = TRUE
+      )
+    gc()
+  }
+  )
 
 
 
