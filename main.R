@@ -1,4 +1,4 @@
-require(read.dbc)
+require(require(read.dbc))
 require(data.table)
 require(dplyr)
 require(purrr)
