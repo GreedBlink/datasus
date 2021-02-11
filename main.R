@@ -106,7 +106,7 @@ purrr::walk(
         final_url = glue::glue('{url_base}{.x}')
         
         usethis::ui_todo(
-          paste('Getting',crayon::bold(crayon::green(.x)),   sep = ' > ')
+          paste('Getting', Sys.time(),crayon::bold(crayon::green(.x)),   sep = ' > ')
         )
         
         dest_file = glue::glue('./data/sia_dbc/{.x}')
@@ -141,7 +141,7 @@ purrr::walk(
             fun_save_log(
               .x,
               type = 'error', 
-              message = e$message, 
+              message = as.character(e$message), 
               block= 'prep_data'
               )
             NULL
@@ -151,7 +151,7 @@ purrr::walk(
             fun_save_log(
               .x,
               type = 'warning', 
-              message = w$message,
+              message =as.character(w$message),
               block= 'prep_data'
             )
             NULL
