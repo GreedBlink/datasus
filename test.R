@@ -25,4 +25,4 @@ conn = fun_create_conn(
   port = credentials$port
 )
 
-DBI::dbGetQuery(conn, 'select * from datasus_sia')
+DBI::dbGetQuery(conn, 'select distinct cod_uf from datasus_sia')

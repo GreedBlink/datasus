@@ -5,8 +5,8 @@ fun_sia_prep <- function(dados){
 
   df <- dados %>% 
     tibble() %>%
-    dplyr::select(PA_UFMUN, PA_PROC_ID, PA_IDADE, PA_SEXO, PA_RACACOR) %>%
-    purrr::set_names(c("cod_municipio","proc_id","idade","sexo","racacor")) %>%
+    dplyr::select(PA_UFMUN, PA_PROC_ID, PA_IDADE, PA_SEXO, PA_RACACOR,ano,mes) %>%
+    purrr::set_names(c("cod_municipio","proc_id","idade","sexo","racacor",'ano','mes')) %>%
     dplyr::mutate(
       cod_municipio = as.character(cod_municipio),
       idade = as.character(idade) %>% as.numeric(),
@@ -35,7 +35,7 @@ fun_sia_prep <- function(dados){
   
   df_final <- df %>% 
     dplyr::group_by(
-      cod_municipio, proc_id, sexo, faixa_etaria, racacor
+      cod_municipio, proc_id, ano,mes,sexo, faixa_etaria, racacor
     ) %>%
     dplyr::summarize(
       valor = length(cod_municipio)
