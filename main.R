@@ -88,7 +88,7 @@ files = fun_sia_links()
 
 
 purrr::walk(
-  .x = estados$estado_sigla[1],
+  .x = estados$estado_sigla,
   .f = ~{
     states_files = files[
       stringr::str_detect(files,paste0(.x,'\\d{4}'))
