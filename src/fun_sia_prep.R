@@ -1,7 +1,7 @@
 library(dplyr)
 
 
-fun_sia_prep <- function(dados){
+fun_sia_prep <- function(dados, estado_param){
 
   df <- dados %>% 
     tibble() %>%
@@ -41,8 +41,11 @@ fun_sia_prep <- function(dados){
       valor = length(cod_municipio)
     ) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(cod_uf = substr(cod_municipio,1,2)) %>%
-    dplyr::select(cod_uf, everything()) %>%
+    dplyr::mutate(
+      cod_uf = substr(cod_municipio,1,2),
+      estado = estado_param
+    ) %>%
+    dplyr::select(cod_uf,estado, everything()) %>%
     dplyr::arrange(cod_municipio, proc_id, sexo, faixa_etaria, racacor)
 }
 

@@ -25,4 +25,9 @@ conn = fun_create_conn(
   port = credentials$port
 )
 
-DBI::dbGetQuery(conn, 'select distinct cod_uf from datasus_sia')
+
+uf_in_db = DBI::dbGetQuery(conn, 'select distinct cod_uf from datasus_sia')
+
+DBI::dbGetQuery(conn, 'select count(*) as nrow from datasus_sia')
+
+DBI::dbDisconnect(conn)

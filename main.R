@@ -12,6 +12,7 @@ invisible(x = {
   require(RPostgres)
 })
 
+'%out%' <- function(x,y){!(x%in%y)}
 
 fs::dir_ls(path = './src/',type = 'file') %>% 
   purrr::walk(~source(.,encoding = 'UTF-8'))
@@ -61,6 +62,7 @@ if(new){
   query_create_table <- '
   CREATE TABLE datasus_sia(
       id  SERIAL,
+      estado varchar(2),
       cod_uf VARCHAR(2),
       cod_municipio VARCHAR(6),
       proc_id VARCHAR(50),
@@ -85,6 +87,14 @@ gc()
 files = fun_sia_links()
 
 
+# 
+# uf_in_db = DBI::dbGetQuery(conn, 'select distinct cod_uf from datasus_sia')
+
+
+# 
+# estados$estado_sigla[
+#   estados$estado_code %out% uf_in_db$cod_uf
+# ]
 
 
 purrr::walk(
@@ -130,11 +140,15 @@ purrr::walk(
           }
         ) # fim downlod tryCatch 
         
+        estado = stringr::str_remove(.x, '.dbc') %>% 
+          stringr::str_remove('^PA') %>% 
+          stringr::str_remove("\\d+") %>% 
+          stringr::str_squish()
         
         dados = tryCatch(
           {
             fun_sia_read_dbc(dest_file,date) %>% 
-            fun_sia_prep() 
+            fun_sia_prep(estado_param = estado) 
           },
           error = function(e){
             print(e)
