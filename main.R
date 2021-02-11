@@ -123,10 +123,10 @@ purrr::walk(
             download.file(final_url,dest_file,quiet = TRUE)
           },
           error = function(e){
-            fun_save_log(.x,type = 'error', message = e, block= 'download')
+            fun_save_log(.x,type = 'error', message = '', block= 'download')
           },
           waring = function(w){
-            fun_save_log(.x,type = 'warning', message = w,block= 'download')
+            fun_save_log(.x,type = 'warning', message = '',block= 'download')
           }
         ) # fim downlod tryCatch 
         
@@ -141,7 +141,7 @@ purrr::walk(
             fun_save_log(
               .x,
               type = 'error', 
-              message = as.character(e$message), 
+              message = '', 
               block= 'prep_data'
               )
             NULL
@@ -151,7 +151,7 @@ purrr::walk(
             fun_save_log(
               .x,
               type = 'warning', 
-              message =as.character(w$message),
+              message ='',
               block= 'prep_data'
             )
             NULL
