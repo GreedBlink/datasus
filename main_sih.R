@@ -16,6 +16,7 @@ invisible(x = {
 
 fs::dir_ls(path = './src/',type = 'file') %>% 
   purrr::walk(~source(.,encoding = 'UTF-8'))
+gc()
 
 estados = fun_get_estados()
 
@@ -34,11 +35,11 @@ if(!fs::dir_exists('./data/sia_data/')){
 
 # database
 credentials = tryCatch({
-    yaml::read_yaml('~/umane_credentials.yml')
-  },
-  warning = function(e){
-    yaml::read_yaml('~/Documents/umane_credentials.yml')
-  }
+  yaml::read_yaml('~/umane_credentials.yml')
+},
+warning = function(e){
+  yaml::read_yaml('~/Documents/umane_credentials.yml')
+}
 )  
 
 
@@ -53,30 +54,72 @@ conn = fun_create_conn(
 new = TRUE
 
 if(new){
-  query_remove_table <- 'DROP TABLE IF EXISTS  datasus_sia '
+  query_remove_table <- 'DROP TABLE IF EXISTS  datasus_sih_internacoes,datasus_sih_dias,datasus_sih_gastos'
   DBI::dbSendQuery(conn, query_remove_table)
- 
- # DBI::dbFetch(res)
+  
+  # DBI::dbFetch(res)
   
   
-  query_create_table <- '
-  CREATE TABLE datasus_sia(
+  query_create_table1 <- '
+  CREATE TABLE datasus_sih_internacoes(
       id  SERIAL,
       estado varchar(2),
       cod_uf VARCHAR(2),
       cod_municipio VARCHAR(6),
-      proc_id VARCHAR(50),
-      sexo VARCHAR(1),
+      tema VARCHAR(70),
+      cids VARCHAR(50),
+      sexo VARCHAR(10),
       faixa_etaria VARCHAR(50),
       racacor VARCHAR(50),
+      obito VARCHAR(10),
       valor INT,
       ano INT,
       mes INT
   );
 '
-  DBI::dbSendQuery(conn, query_create_table)
+  DBI::dbSendQuery(conn, query_create_table1)
+   
+  query_create_table2 <- '
+  CREATE TABLE datasus_sih_dias(
+      id  SERIAL,
+      estado varchar(2),
+      cod_uf VARCHAR(2),
+      cod_municipio VARCHAR(6),
+      tema VARCHAR(70),
+      cids VARCHAR(50),
+      sexo VARCHAR(10),
+      faixa_etaria VARCHAR(50),
+      racacor VARCHAR(50),
+      valor FLOAT,
+      ano INT,
+      mes INT
+  );
+'
+  DBI::dbSendQuery(conn, query_create_table2)
   
-  #DBI::dbFetch(res)
+  query_create_table3 <- '
+  CREATE TABLE datasus_sih_gastos(
+     id  SERIAL,
+      estado varchar(2),
+      cod_uf VARCHAR(2),
+      cod_municipio VARCHAR(6),
+      tema VARCHAR(70),
+      cids VARCHAR(50),
+      sexo VARCHAR(10),
+      faixa_etaria VARCHAR(50),
+      racacor VARCHAR(50),
+      valor_tipo VARCHAR(20),
+      valor_total FLOAT,
+      valor_sh FLOAT,
+      valor_sp FLOAT,
+      ano INT,
+      mes INT
+  );
+'
+  
+  DBI::dbSendQuery(conn, query_create_table3)
+  
+  
   
 }
 
@@ -84,47 +127,42 @@ if(new){
 gc()
 
 
-files = fun_sia_links()
+files = fun_sih_links()
 
 
 
-uf_in_db = DBI::dbGetQuery(conn, 'select distinct estado from datasus_sia')
+
+#uf_in_db = DBI::dbGetQuery(conn, 'select distinct estado from datasus_sih_gastos')
 
 
-
-estados = estados$estado_sigla[
-  estados$estado_sigla %out% uf_in_db$estado
-]
+# 
+# estados = estados$estado_sigla[
+#   estados$estado_sigla %out% uf_in_db$estado
+# ]
 
 
 purrr::walk(
-  .x = estados,
+  .x = estados$estado_sigla,
   .f = ~{
     states_files = files[
       stringr::str_detect(files,paste0(.x,'\\d{4}'))
     ]
     
     
-    states_files = fun_check_states(
-      state = .x,
-      files_param = states_files,
-      conn = conn
-    )    
-    
-    fs::dir_create('./data/sia_dbc/')
+    fs::dir_create('./data/sih_dbc/')
     
     purrr::walk(
       .x = states_files,
       .f=~{
         
-        url_base = 'ftp://ftp.datasus.gov.br/dissemin/publicos/SIASUS/200801_/Dados/'
+        url_base = 'ftp://ftp.datasus.gov.br/dissemin/publicos/SIHSUS/200801_/Dados/'
         final_url = glue::glue('{url_base}{.x}')
         
         usethis::ui_todo(
           paste('Getting', Sys.time(),crayon::bold(crayon::green(.x)),   sep = ' > ')
         )
         
-        dest_file = glue::glue('./data/sia_dbc/{.x}')
+        dest_file = glue::glue('./data/sih_dbc/{.x}')
         
         name = stringr::str_remove(.x, '.dbc') %>% stringr::str_squish()
         date = stringr::str_extract(.x, '\\d+') %>% 
@@ -135,7 +173,7 @@ purrr::walk(
         
         tryCatch(
           {
-            download.file(final_url,dest_file,quiet = TRUE)
+            download.file(final_url,dest_file,quiet = TRUE) 
           },
           error = function(e){
             fun_save_log(.x,type = 'error', message = '', block= 'download')
@@ -146,15 +184,16 @@ purrr::walk(
         ) # fim downlod tryCatch 
         
         estado = stringr::str_remove(.x, '.dbc') %>% 
-          stringr::str_remove('^PA') %>% 
+          stringr::str_remove('^RD') %>% 
           stringr::str_remove('a|b|c') %>% 
           stringr::str_remove("\\d+") %>% 
           stringr::str_squish()
         
-        dados = tryCatch(
+        invisible({
+          dados = tryCatch(
           {
-            fun_sia_read_dbc(dest_file,date) %>% 
-            fun_sia_prep(estado_param = estado) 
+             read.dbc::read.dbc(dest_file) %>% 
+              fun_sih_prep() 
           },
           error = function(e){
             print(e)
@@ -163,7 +202,7 @@ purrr::walk(
               type = 'error', 
               message = '', 
               block= 'prep_data'
-              )
+            )
             NULL
           },
           warning = function(w){
@@ -179,17 +218,32 @@ purrr::walk(
             NULL
           }
         ) # fim prep tryCatch
+        })#fim invisible
+        
         
         try(fs::file_delete(dest_file))
         
         gc()
         
-        if( !is.null(dados) ){
+        if( !is.null(dados$datasus_sih_internacoes) ){
           tryCatch({
-            res = DBI::dbWriteTable(
+             DBI::dbWriteTable(
               conn, 
-              name = 'datasus_sia',
-              value = dados,
+              name = 'datasus_sih_dias',
+              value = dados$datasus_sih_dias,
+              append = TRUE
+            )
+            
+            DBI::dbWriteTable(
+              conn, 
+              name = 'datasus_sih_internacoes',
+              value = dados$datasus_sih_internacoes,
+              append = TRUE
+            )
+            DBI::dbWriteTable(
+              conn, 
+              name = 'datasus_sih_gastos',
+              value = dados$datasus_sih_gastos,
               append = TRUE
             )
             
@@ -202,12 +256,24 @@ purrr::walk(
               host = credentials$host,
               port = credentials$port
             )
-            res = DBI::dbWriteTable(
+           DBI::dbWriteTable(
               conn, 
-              name = 'datasus_sia',
-              value = dados,
+              name = 'datasus_sih_dias',
+              value = dados$datasus_sih_dias,
               append = TRUE
             )
+           DBI::dbWriteTable(
+             conn, 
+             name = 'datasus_sih_internacoes',
+             value = dados$datasus_sih_internacoes,
+             append = TRUE
+           )
+           DBI::dbWriteTable(
+             conn, 
+             name = 'datasus_sih_gastos',
+             value = dados$datasus_sih_gastos,
+             append = TRUE
+           )
             
             
           }) # fim save db tryCatch 
@@ -216,7 +282,7 @@ purrr::walk(
         
       }
     )
-    fs::dir_delete('./data/sia_dbc/')
+    fs::dir_delete('./data/sih_dbc/')
     gc()
   }
 )

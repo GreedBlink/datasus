@@ -5,7 +5,7 @@ fun_sia_prep <- function(dados, estado_param){
 
   df <- dados %>% 
     tibble() %>%
-    dplyr::select(PA_UFMUN, PA_PROC_ID, PA_IDADE, PA_SEXO, PA_RACACOR,ano,mes) %>%
+    dplyr::select(PA_MUNPCN, PA_PROC_ID, PA_IDADE, PA_SEXO, PA_RACACOR,ano,mes) %>%
     purrr::set_names(c("cod_municipio","proc_id","idade","sexo","racacor",'ano','mes')) %>%
     dplyr::mutate(
       cod_municipio = as.character(cod_municipio),
@@ -28,7 +28,7 @@ fun_sia_prep <- function(dados, estado_param){
         racacor == "04" ~ "Amarela", 
         racacor == "05" ~ "Indígena", 
         racacor == "99" ~ "Sem informação",
-        T ~ "Sem informação"
+        TRUE ~ "Sem informação"
       )
     ) %>%
     dplyr::filter(cod_municipio != "999999")
@@ -47,5 +47,7 @@ fun_sia_prep <- function(dados, estado_param){
     ) %>%
     dplyr::select(cod_uf,estado, everything()) %>%
     dplyr::arrange(cod_municipio, proc_id, sexo, faixa_etaria, racacor)
+  
+  df_final
 }
 

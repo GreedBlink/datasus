@@ -26,7 +26,7 @@ conn = fun_create_conn(
 )
 
 
-uf_in_db = DBI::dbGetQuery(conn, 'select distinct cod_uf from datasus_sia')
+DBI::dbGetQuery(conn, 'select distinct estado from datasus_sia')
 
 DBI::dbGetQuery(conn, 'select count(*) as nrow from datasus_sia')
 

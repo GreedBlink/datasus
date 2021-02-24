@@ -11,3 +11,11 @@ fun_sia_read_dbc <- function(file,date){
     .[,mes := mes_q] %>% 
     .[PA_PROC_ID %chin% procs] 
 }
+
+# 
+# 
+# dados = read.dbc::read.dbc('./data/sih_dbc/RDAC0801.dbc')
+# 
+# dados = dados %>% tibble::as_tibble() 
+# 
+# saveRDS(dados,file = './data/sih_amostra.rds')
