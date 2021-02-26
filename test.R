@@ -25,6 +25,8 @@ conn = fun_create_conn(
   port = credentials$port
 )
 
+tabelas = DBI::dbListTables(conn)
+tabelas[tabelas == 'datasus_sia']
 
 DBI::dbGetQuery(conn, 'select distinct estado from datasus_sia')
 

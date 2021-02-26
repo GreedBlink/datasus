@@ -50,7 +50,7 @@ conn = fun_create_conn(
   port = credentials$port
 )
 
-new = TRUE
+new = FALSE
 
 if(new){
   query_remove_table <- 'DROP TABLE IF EXISTS  datasus_sia '
